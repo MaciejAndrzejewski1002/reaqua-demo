@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReAqua Plugin Suite – Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e8f0f7;
+    --panel: #f4f8fc;
+    --win-bg: #dce8f2;
+    --border: #b0c8de;
+    --accent: #1a5fa8;
+    --accent2: #2980d4;
+    --green: #1e7d4f;
+    --green2: #27ae60;
+    --text: #0d2a45;
+    --muted: #5a7a9a;
+    --tab-active: #fff;
+    --tab-bg: #cdddf0;
+    --input-bg: #fff;
+    --shadow: 0 4px 24px rgba(26,95,168,0.13);
+    --info-bg: #eaf3fb;
+    --info-border: #9ec4e8;
+    --warn-bg: #fff8e1;
+    --warn-border: #f0c040;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: linear-gradient(135deg, #c8ddf0 0%, #e8f2fa 50%, #d0e8f5 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+    color: var(--text);
+  }
+
+  /* Header */
+  .suite-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .suite-logo {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .suite-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.03em;
+  }
+  .suite-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 300;
+  }
+
+  /* Plugin switcher */
+  .plugin-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 12px;
+    padding: 6px;
+    border: 1px solid var(--border);
+  }
+  .plugin-tab {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .plugin-tab.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(26,95,168,0.25);
+  }
+  .plugin-tab:hover:not(.active) { background: rgba(26,95,168,0.08); color: var(--accent); }
+  .step-badge {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .plugin-tab:not(.active) .step-badge { background: var(--tab-bg); color: var(--accent); }
+
+  /* Window chrome */
+  .window {
+    background: var(--panel);
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow);
+    width: 540px;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .titlebar {
+    background: linear-gradient(90deg, #1a5fa8, #2980d4);
+    color: #fff;
+    padding: 9px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .titlebar-name { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+  .titlebar-close { font-size: 16px; opacity: 0.6; cursor: default; }
+
+  /* Plugin info banner */
+  .plugin-banner {
+    background: #e0edf8;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+  }
+  .plugin-banner strong { font-size: 13px; color: var(--accent); }
+  .plugin-banner p { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* Inner tabs */
+  .inner-tabs {
+    display: flex;
+    background: var(--win-bg);
+    border-bottom: 1.5px solid var(--border);
+    padding: 0 12px;
+    gap: 2px;
+  }
+  .inner-tab {
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Sora', sans-serif;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+    margin-bottom: -1.5px;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .inner-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--tab-active);
+    border-radius: 6px 6px 0 0;
+  }
+  .inner-tab:hover:not(.active) { color: var(--accent2); }
+
+  /* Content area */
+  .content { padding: 16px; display: none; }
+  .content.active { display: block; }
+
+  /* Info boxes */
+  .info-box {
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    color: #1a4a7a;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .warn-box {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #7a5500;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .warn-box strong { color: #c07000; }
+
+  /* Section label */
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Form rows */
+  .form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .form-label {
+    font-size: 11.5px;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+  }
+  .form-label .unit { color: var(--muted); font-size: 10px; }
+
+  input[type="number"], input[type="text"], select {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    width: 120px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select { width: 180px; cursor: pointer; }
+  input:focus, select:focus { border-color: var(--accent2); box-shadow: 0 0 0 2px rgba(41,128,212,0.15); }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .checkbox-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
+
+  /* Output folder */
+  .output-section {
+    background: var(--win-bg);
+    border-top: 1.5px solid var(--border);
+    padding: 10px 16px;
+  }
+  .output-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+  .output-row { display: flex; gap: 6px; align-items: center; }
+  .output-path {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--muted);
+    outline: none;
+  }
+  .btn-browse {
+    padding: 5px 12px;
+    font-size: 11.5px;
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-browse:hover { border-color: var(--accent2); color: var(--accent); }
+
+  /* Footer buttons */
+  .win-footer {
+    background: var(--win-bg);
+    border-top: 1.5px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .btn-cancel {
+    padding: 7px 18px;
+    font-size: 12px;
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancel:hover { border-color: #888; color: var(--text); }
+  .btn-run {
+    padding: 7px 20px;
+    font-size: 12px;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1e7d4f, #27ae60);
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 7px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(30,125,79,0.3);
+  }
+  .btn-run:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(30,125,79,0.4); }
+  .btn-run:active { transform: translateY(0); }
+
+  /* Run animation */
+  .run-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,30,60,0.7);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .run-overlay.show { display: flex; }
+  .run-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 36px 48px;
+    text-align: center;
+    box-shadow: 0 16px 60px rgba(0,0,0,0.3);
+    min-width: 280px;
+  }
+  .run-spinner {
+    width: 48px; height: 48px;
+    border: 4px solid #e0edf8;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .run-label { font-size: 15px; font-weight: 700; color: var(--text); }
+  .run-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .run-bar { width: 200px; height: 5px; background: #e0edf8; border-radius: 3px; margin: 14px auto 0; overflow: hidden; }
+  .run-fill { height: 100%; background: var(--accent); border-radius: 3px; animation: fill 2.2s ease-out forwards; }
+  @keyframes fill { from { width: 0 } to { width: 100% } }
+
+  .done-icon { font-size: 40px; margin-bottom: 10px; }
+  .done-label { font-size: 15px; font-weight: 700; color: var(--green); }
+  .done-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .btn-done {
+    margin-top: 18px;
+    padding: 8px 24px;
+    border: none;
+    border-radius: 7px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-done:hover { background: var(--accent2); }
+
+  .section-gap { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="suite-header">
+  <div class="suite-logo">ReAqua · Plugin Suite</div>
+  <div class="suite-title">Interactive Simulator</div>
+  <div class="suite-sub">Translated UI · All three plugins · QGIS-style interface</div>
+</div>
+
+<!-- Plugin switcher -->
+<div class="plugin-tabs">
+  <button class="plugin-tab active" onclick="switchPlugin(0)"><span class="step-badge">1</span> Scout</button>
+  <button class="plugin-tab" onclick="switchPlugin(1)"><span class="step-badge">2</span> Kriging</button>
+  <button class="plugin-tab" onclick="switchPlugin(2)"><span class="step-badge">3</span> Summary</button>
+</div>
+
+<!-- ====== PLUGIN 1: SCOUT ====== -->
+<div class="window" id="plugin-0">
+  <div class="titlebar">
+    <span class="titlebar-name">ReAqua Scout – Distributed Reservoir Siting</span>
+    <span class="titlebar-close">✕</span>
+  </div>
+  <div class="plugin-banner">
+    <strong>ReAqua Scout</strong> – Small retention reservoir siting
+    <p>Area-weighted algorithm concentrates candidate points in the most drought-affected zones, ensuring proportional geographic coverage.</p>
+  </div>
+
+  <!-- Inner tabs -->
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="switchTab(this, 'scout-input')">🗂 Input Data</button>
+    <button class="inner-tab" onclick="switchTab(this, 'scout-class')">🌿 Drought Classification</button>
+    <button class="inner-tab" onclick="switchTab(this, 'scout-algo')">⚙ Zonal Algorithm</button>
+  </div>
+
+  <!-- Tab: Input Data -->
+  <div class="content active" id="scout-input">
+    <div class="section-label">Satellite Band Layers</div>
+    <div class="form-row">
+      <span class="form-label">RED band layer:</span>
+      <select><option>B04_RED (loaded)</option><option>Browse layer…</option></select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">NIR band layer:</span>
+      <select><option>B08_NIR (loaded)</option><option>Browse layer…</option></select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">SWIR band layer:</span>
+      <select><option>B11_SWIR (loaded)</option><option>Browse layer…</option></select>
+    </div>
+    <div class="section-label section-gap">Satellite Source</div>
+    <div class="form-row">
+      <span class="form-label">Satellite / sensor:</span>
+      <select><option>Sentinel-2 L2A</option><option>Landsat 8</option><option>Landsat 9</option></select>
+    </div>
+  </div>
+
+  <!-- Tab: Drought Classification -->
+  <div class="content" id="scout-class">
+    <div class="info-box">
+      Advanced: change only if you know the spectral values of your scene. Default values work well for Sentinel-2 L2A.
+    </div>
+    <div class="section-label">Drought Classification Thresholds</div>
+    <div class="form-row">
+      <span class="form-label">NDVI threshold – mild drought <span class="unit">(≤)</span>:</span>
+      <input type="number" value="0.450" step="0.005">
+    </div>
+    <div class="form-row">
+      <span class="form-label">NDVI threshold – moderate drought <span class="unit">(≤)</span>:</span>
+      <input type="number" value="0.300" step="0.005">
+    </div>
+    <div class="form-row">
+      <span class="form-label">NDVI threshold – severe drought <span class="unit">(≤)</span>:</span>
+      <input type="number" value="0.015" step="0.005">
+    </div>
+    <div class="form-row">
+      <span class="form-label">NDMI threshold – severe drought <span class="unit">(&lt;)</span>:</span>
+      <input type="number" value="0.100" step="0.005">
+    </div>
+    <div class="form-row">
+      <span class="form-label">NDBI threshold – urban area <span class="unit">(≤)</span>:</span>
+      <input type="number" value="0.100" step="0.005">
+    </div>
+  </div>
+
+  <!-- Tab: Zonal Algorithm -->
+  <div class="content" id="scout-algo">
+    <div class="info-box">
+      <strong>Area-weighted algorithm</strong>: the map is divided into a Z×Z grid. Each zone receives candidate slots <em>proportional to drought surface area</em> (px × class weight × pixel area [m²]). Zones with severe drought get more candidates; zones with no drought get none. Guarantees that point distribution reflects actual drought severity.
+    </div>
+    <div class="section-label">Algorithm Parameters</div>
+    <div class="form-row">
+      <span class="form-label">Number of zones (Z×Z):</span>
+      <input type="number" value="14" min="2" max="50">
+    </div>
+    <div class="form-row">
+      <span class="form-label">KDE sigma <span class="unit">(low = more detail)</span>:</span>
+      <input type="number" value="800" step="50"> <small style="font-size:10px;color:var(--muted);margin-left:3px">m</small>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Min. drought class:</span>
+      <input type="number" value="2" min="1" max="3">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Min. density threshold <span class="unit">[0–1]</span>:</span>
+      <input type="number" value="0.020" step="0.005">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Min. distance between points:</span>
+      <input type="number" value="4000" step="100"> <small style="font-size:10px;color:var(--muted);margin-left:3px">m</small>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Max. number of points:</span>
+      <input type="number" value="80" min="1">
+    </div>
+  </div>
+
+  <div class="output-section">
+    <div class="output-label">OUTPUT FOLDER</div>
+    <div class="output-row">
+      <input class="output-path" type="text" placeholder="Leave empty = auto (next to input data)">
+      <button class="btn-browse">Browse…</button>
+    </div>
+  </div>
+  <div class="win-footer">
+    <button class="btn-cancel">Close</button>
+    <button class="btn-run" onclick="runAnalysis('Scout','Running drought analysis…','Drought map + reservoir candidates saved.')">▶ Run Analysis</button>
+  </div>
+</div>
+
+<!-- ====== PLUGIN 2: KRIGING ====== -->
+<div class="window" id="plugin-1" style="display:none">
+  <div class="titlebar">
+    <span class="titlebar-name">ReAqua Kriging – Kriging Drought Mitigation</span>
+    <span class="titlebar-close">✕</span>
+  </div>
+  <div class="plugin-banner">
+    <strong>ReAqua Kriging</strong> – Mitigation reach modelling
+    <p>Anisotropic ordinary kriging accounting for wind direction, soil type, and reservoir volume to produce a residual drought risk map.</p>
+  </div>
+
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="switchTab(this, 'krig-input')">🗂 Input Data</button>
+    <button class="inner-tab" onclick="switchTab(this, 'krig-wind')">🌬 Wind & Soil</button>
+    <button class="inner-tab" onclick="switchTab(this, 'krig-params')">📐 Kriging</button>
+    <button class="inner-tab" onclick="switchTab(this, 'krig-res')">💧 Reservoirs</button>
+  </div>
+
+  <!-- Tab: Input Data -->
+  <div class="content active" id="krig-input">
+    <div class="section-label">Reservoir Point Layer</div>
+    <div class="info-box">
+      Use the vector layer of points generated by ReAqua Scout, or any point layer with <strong>pow_km2</strong> (area in km²) and optionally <strong>kl_suszy</strong> attributes.
+    </div>
+    <div class="form-row">
+      <span class="form-label">Points layer:</span>
+      <select><option>Reservoir proposals</option><option>Browse…</option></select>
+    </div>
+    <div style="margin-bottom:8px">
+      <input class="output-path" type="text" placeholder="…or paste path to .shp file" style="width:100%">
+    </div>
+    <div class="section-label section-gap">Drought Raster (optional)</div>
+    <div class="info-box">
+      Drought classification raster (*_susza.tif from ReAqua Scout). Used for kriging monitoring station sampling. If omitted – kriging is based on reservoir points only.
+    </div>
+    <div class="form-row">
+      <span class="form-label">Raster layer:</span>
+      <select><option>Drought map (ReAqua Scout)</option><option>Browse…</option></select>
+    </div>
+    <div>
+      <input class="output-path" type="text" placeholder="…or path to *_susza.tif" style="width:100%">
+    </div>
+  </div>
+
+  <!-- Tab: Wind & Soil -->
+  <div class="content" id="krig-wind">
+    <div class="info-box">
+      <strong>Wind anisotropy</strong> elongates the reservoir's influence zone downwind. Stronger wind = longer, narrower moisture plume. Method: geometric anisotropy in kriging covariance matrix (Chilès & Delfiner 2012).
+    </div>
+    <div class="section-label">Wind Parameters</div>
+    <div class="form-row">
+      <span class="form-label">Wind direction (FROM):</span>
+      <select>
+        <option>W – from West</option>
+        <option>SW – from Southwest</option>
+        <option>NW – from Northwest</option>
+        <option>N – from North</option>
+        <option>NE – from Northeast</option>
+        <option>E – from East</option>
+        <option>SE – from Southeast</option>
+        <option>S – from South</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Wind speed:</span>
+      <input type="number" value="4.5" step="0.5"> <small style="font-size:10px;color:var(--muted);margin-left:3px">m/s</small>
+    </div>
+    <div class="section-label section-gap">Soil (effect on moisture reach)</div>
+    <div class="form-row">
+      <span class="form-label">Soil type:</span>
+      <select>
+        <option>Clay (medium)</option>
+        <option>Sandy loam</option>
+        <option>Loam</option>
+        <option>Sandy</option>
+        <option>Peat</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tab: Kriging -->
+  <div class="content" id="krig-params">
+    <div class="info-box">
+      Ordinary kriging with anisotropic Gaussian variogram. Monitoring stations are sampled from drought pixels (value = 0, no reservoir) and form the interpolation background. More stations = smoother result, longer computation.
+    </div>
+    <div class="warn-box"><strong>Note:</strong> Higher station count = smoother output, longer processing time.</div>
+    <div class="section-label">Kriging Parameters</div>
+    <div class="form-row">
+      <span class="form-label">Number of monitoring stations:</span>
+      <input type="number" value="120" min="10" max="500">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Random seed:</span>
+      <input type="number" value="42">
+    </div>
+  </div>
+
+  <!-- Tab: Reservoirs -->
+  <div class="content" id="krig-res">
+    <div class="info-box">
+      If reservoir points <strong>lack a volume attribute</strong> (volume_m3), the default values below are used. Influence reach scales with √(area) and volume.
+      <br><em style="font-size:10px">Sources: Hesselrová et al. 2013, Puma & Cook 2010.</em>
+    </div>
+    <div class="section-label">Default Reservoir Parameters</div>
+    <div class="form-row">
+      <span class="form-label">Default reservoir area:</span>
+      <input type="number" value="4.0" step="0.5"> <small style="font-size:10px;color:var(--muted);margin-left:3px">ha</small>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Default volume:</span>
+      <input type="number" value="100000" step="5000"> <small style="font-size:10px;color:var(--muted);margin-left:3px">m³</small>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Assumed average depth:</span>
+      <input type="number" value="3.0" step="0.5"> <small style="font-size:10px;color:var(--muted);margin-left:3px">m</small>
+    </div>
+  </div>
+
+  <div class="output-section">
+    <div class="output-label">OUTPUT FOLDER</div>
+    <div class="output-row">
+      <input class="output-path" type="text" placeholder="Leave empty = next to input SHP">
+      <button class="btn-browse">Browse…</button>
+    </div>
+  </div>
+  <div class="win-footer">
+    <button class="btn-cancel">Close</button>
+    <button class="btn-run" onclick="runAnalysis('Kriging','Running kriging model…','Mitigation surface + residual drought map saved.')">▶ Run Kriging</button>
+  </div>
+</div>
+
+<!-- ====== PLUGIN 3: SUMMARY ====== -->
+<div class="window" id="plugin-2" style="display:none">
+  <div class="titlebar">
+    <span class="titlebar-name">ReAqua Summary – Regional Analysis with Vegetation Impact</span>
+    <span class="titlebar-close">✕</span>
+  </div>
+  <div class="plugin-banner">
+    <strong>ReAqua Summary</strong> – Regional hydrological balance report
+    <p>Comprehensive report: retention indicators, drought mitigation, vegetation response (NDVI, biomass, productivity), agricultural and climate co-benefits.</p>
+  </div>
+
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="switchTab(this, 'sum-data')">🗂 Data & Parameters</button>
+    <button class="inner-tab" onclick="switchTab(this, 'sum-veg')">🌱 Vegetation & Environment</button>
+  </div>
+
+  <!-- Tab: Data & Parameters -->
+  <div class="content active" id="sum-data">
+    <div class="section-label">Input Data</div>
+    <div class="form-row">
+      <span class="form-label">Reservoir layer (ReAqua Scout):</span>
+      <select><option>Reservoir proposals</option><option>Browse…</option></select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Drought raster:</span>
+      <select><option>260421T131414_wynik_suszy_NDBI.tif</option><option>Browse…</option></select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Mitigation raster:</span>
+      <input class="output-path" type="text" placeholder="(optional) mitigation from ReAqua Kriging .tif" style="width:180px">
+    </div>
+    <div class="section-label section-gap">Regional Parameters</div>
+    <div class="form-row">
+      <span class="form-label">Area size:</span>
+      <input type="number" value="2500"> <small style="font-size:10px;color:var(--muted);margin-left:3px">km²</small>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Region name:</span>
+      <input type="text" value="Eastern Wielkopolska" style="width:180px">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Soil type:</span>
+      <select style="width:200px"><option>Clay (medium) – typical Wielkopolska</option><option>Sandy loam</option><option>Loam</option></select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Wind direction:</span>
+      <select><option>Westerly (dominant PL)</option><option>SW</option><option>NW</option></select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Wind speed:</span>
+      <input type="number" value="4.00" step="0.5"> <small style="font-size:10px;color:var(--muted);margin-left:3px">m/s</small>
+    </div>
+    <div class="section-label section-gap">Output Folder</div>
+    <div class="output-row">
+      <input class="output-path" type="text" placeholder="(default: layer folder)">
+      <button class="btn-browse">…</button>
+    </div>
+  </div>
+
+  <!-- Tab: Vegetation & Environment -->
+  <div class="content" id="sum-veg">
+    <div class="section-label">Vegetation Analysis Parameters (v2)</div>
+    <div class="form-row">
+      <span class="form-label">Dominant crop:</span>
+      <select style="width:200px">
+        <option>Wheat (800 PLN/t)</option>
+        <option>Maize (700 PLN/t)</option>
+        <option>Rapeseed (1400 PLN/t)</option>
+        <option>Sugar beet (200 PLN/t)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Cropland share in ASA:</span>
+      <input type="number" value="0.60" step="0.05" min="0" max="1"> <small style="font-size:10px;color:var(--muted);margin-left:3px">(fraction of arable land)</small>
+    </div>
+
+    <div style="margin: 12px 0 10px">
+      <label class="checkbox-row"><input type="checkbox" checked> Calculate biodiversity support index (BSI)</label>
+      <label class="checkbox-row"><input type="checkbox" checked> Calculate carbon sequestration (CSI)</label>
+      <label class="checkbox-row"><input type="checkbox" checked> Calculate microclimate cooling (MCC)</label>
+    </div>
+
+    <div class="info-box">
+      <strong>New indicators in v2:</strong><br>
+      <strong>VII</strong> – Vegetation Improvement Index (NDVI improvement in influence zone)<br>
+      <strong>SBI</strong> – Supported Biomass Index (estimated supported biomass [t/yr])<br>
+      <strong>CBI</strong> – Crop Benefit Index (production benefit [PLN/yr])<br>
+      <strong>MCC</strong> – Microclimate Cooling Index (temperature reduction [°C])<br>
+      <strong>BSI</strong> – Biodiversity Support Index (biodiversity support)<br>
+      <strong>CSI</strong> – Carbon Sequestration Index (CO₂ sequestration [t/yr])<br>
+      <em style="font-size:10px;color:var(--muted)">Formulae based on: Kędziora 1995, IUNG-PIB 2020, KOBIZE 2022, GUS 2023.</em>
+    </div>
+  </div>
+
+  <div class="win-footer">
+    <button class="btn-cancel">Cancel</button>
+    <button class="btn-run" onclick="runAnalysis('Summary','Generating regional report…','Full report PDF + GeoTIFFs saved.')">▶ Generate Regional Report v2</button>
+  </div>
+</div>
+
+<!-- Run overlay -->
+<div class="run-overlay" id="runOverlay">
+  <div class="run-card" id="runCard">
+    <div class="run-spinner" id="runSpinner"></div>
+    <div class="run-label" id="runLabel">Running analysis…</div>
+    <div class="run-sub" id="runSub">Please wait</div>
+    <div class="run-bar"><div class="run-fill" id="runFill"></div></div>
+  </div>
+</div>
+
+<script>
+  function switchPlugin(idx) {
+    document.querySelectorAll('.window').forEach((w,i) => w.style.display = i===idx ? '' : 'none');
+    document.querySelectorAll('.plugin-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  }
+
+  function switchTab(btn, contentId) {
+    const win = btn.closest('.window');
+    win.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+    win.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    win.querySelector('#' + contentId).classList.add('active');
+  }
+
+  function runAnalysis(plugin, msg, done) {
+    const overlay = document.getElementById('runOverlay');
+    const label = document.getElementById('runLabel');
+    const sub = document.getElementById('runSub');
+    const spinner = document.getElementById('runSpinner');
+    const fill = document.getElementById('runFill');
+    const card = document.getElementById('runCard');
+
+    label.textContent = msg;
+    sub.textContent = 'Please wait…';
+    spinner.style.display = '';
+    fill.style.animation = 'none'; fill.offsetHeight; fill.style.animation = '';
+    card.innerHTML = `
+      <div class="run-spinner"></div>
+      <div class="run-label">${msg}</div>
+      <div class="run-sub">Please wait…</div>
+      <div class="run-bar"><div class="run-fill"></div></div>
+    `;
+    overlay.classList.add('show');
+
+    setTimeout(() => {
+      card.innerHTML = `
+        <div class="done-icon">✅</div>
+        <div class="done-label">${plugin} completed</div>
+        <div class="run-sub">${done}</div>
+        <button class="btn-done" onclick="document.getElementById('runOverlay').classList.remove('show')">OK</button>
+      `;
+    }, 2400);
+  }
+</script>
+</body>
+</html>
